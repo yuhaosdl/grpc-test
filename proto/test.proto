@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package test;
+
+import "google/api/annotations.proto";
+//import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloReq) returns (HelloResp) {
+    option (google.api.http) = {
+      post: "/v1/example/sayHello"
+      body: "*"
+    };
+  }
+  rpc SayBye (ByeReq) returns (ByeResp) {
+    option (google.api.http) = {
+      get: "/v1/sayBye"
+    };
+  }
+  rpc AlwaysSay (stream StreamReq) returns (stream StreamResp) {
+    option (google.api.http) = {
+      get: "/v1/alwaysSay"
+    };
+  }
+  rpc SaySomething (stream SaySomethingReq) returns (stream SaySomethingResp) {
+    option (google.api.http) = {
+      get: "/v1/saySomething"
+    };
+  }
+}
+
+// The request message containing the user's name.
+message HelloReq {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message HelloResp {
+  string message = 1;
+}
+
+// The request message containing the user's name.
+message ByeReq {
+  string name = 1;
+  google.protobuf.Timestamp bye_time = 2;
+}
+
+// The response message containing the greetings
+message ByeResp {
+  string message = 1;
+}
+
+message  StreamReq {
+  string name = 1;
+}
+message  StreamResp {
+  string message = 1;
+}
+
+message SaySomethingReq{
+  oneof something{
+    string name = 1;
+    SubMessage sub_message = 2;
+  }
+}
+message SubMessage{
+  string audioName =1;
+      string audioPath =2;
+}
+
+message SaySomethingResp{
+  string message = 1;
+}
