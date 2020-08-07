@@ -6,11 +6,11 @@ import (
 	"fmt"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	zipkinot "github.com/openzipkin-contrib/zipkin-go-opentracing"
 	"github.com/openzipkin/zipkin-go"
@@ -20,7 +20,8 @@ import (
 	"google.golang.org/grpc/reflection"
 	test "grpc-test/proto"
 	"grpc-test/services"
-	"log"
+	//"log"
+	"grpc-test/log"
 	"net"
 	"net/http"
 )
@@ -48,18 +49,19 @@ func main() {
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *port)) //监听所有网卡8088端口的TCP连接
 	if err != nil {
-		log.Fatalf("监听失败: %v", err)
+		log.Fatal("监听失败", err)
 		return
 	}
 
 	// set up a span reporter
-	reporter := zipkinhttp.NewReporter("http://39.106.8.113:9411/api/v2/spans")
+	reporter := zipkinhttp.NewReporter("http://xxxxxxxxxxx:9411/api/v2/spans")
 	defer reporter.Close()
 
 	// create our local service endpoint
 	endpoint, err := zipkin.NewEndpoint("grpc-server", "127.0.0.1:8088")
 	if err != nil {
-		log.Fatalf("unable to create local endpoint: %+v\n", err)
+		log.Fatal("unable to create local endpoint", err)
+		return
 	}
 	// set-up our sampling strategy
 	//sampler, err := zipkin.NewBoundarySampler(0.01, time.Now().UnixNano())
@@ -69,7 +71,8 @@ func main() {
 	// initialize our tracer
 	nativeTracer, err := zipkin.NewTracer(reporter, zipkin.WithLocalEndpoint(endpoint), zipkin.WithTraceID128Bit(true))
 	if err != nil {
-		log.Fatalf("unable to create tracer: %+v\n", err)
+		log.Fatal("unable to create tracer", err)
+		return
 	}
 
 	// use zipkin-go-opentracing to wrap our tracer
@@ -81,17 +84,21 @@ func main() {
 	s := grpc.NewServer(grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 		grpc_ctxtags.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(),
-		otgrpc.OpenTracingStreamServerInterceptor(tracer, otgrpc.LogPayloads()),
+		grpc_zap.StreamServerInterceptor(log.ZapInterceptor()),
+		//otgrpc.OpenTracingStreamServerInterceptor(tracer, otgrpc.LogPayloads()),
 		grpc_auth.StreamServerInterceptor(myAuthFunction),
 		grpc_recovery.StreamServerInterceptor(),
 	)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_opentracing.UnaryServerInterceptor(),
-			otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads()),
+			grpc_zap.UnaryServerInterceptor(log.ZapInterceptor()),
+			//otgrpc.OpenTracingServerInterceptor(tracer, otgrpc.LogPayloads()),
 			grpc_auth.UnaryServerInterceptor(myAuthFunction),
 			grpc_recovery.UnaryServerInterceptor(),
 		))) //创建gRPC服务
+
+	defer log.FlushLogger()
 	/**注册接口服务
 	 * 以定义proto时的service为单位注册，服务中可以有多个方法
 	 * (proto编译时会为每个service生成Register***Server方法)
@@ -109,7 +116,8 @@ func main() {
 	// 将监听交给gRPC服务处理
 	err = s.Serve(lis)
 	if err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Fatal("failed to serve", err)
+		return
 	}
 }
 

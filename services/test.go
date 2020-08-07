@@ -19,13 +19,8 @@ type Server struct {
 func (s *Server) SayHello(ctx context.Context, in *test.HelloReq) (*test.HelloResp, error) {
 	resp := fmt.Sprintf("hello:%s", in.Name)
 	fmt.Print(resp)
-	//parentSpan := opentracing.SpanFromContext(ctx)
-	//if parentSpan != nil {
-	//	log.Printf("got Parenet ctx in SayHello")
-	//} else {
-	//	log.Printf("not got Parenet ctx in SayHello")
-	//}
-	clientTest(ctx)
+	//server-client 测试
+	//clientTest(ctx)
 	return &test.HelloResp{
 		Message: resp,
 	}, nil
@@ -112,7 +107,6 @@ func (s *Server) SaySomething(stream test.Greeter_SaySomethingServer) error {
 func clientTest(ctx context.Context) {
 
 	// 建立连接到gRPC服务
-	//39.106.8.113
 	conn, err := grpc.Dial("localhost:8089",
 		grpc.WithInsecure(),
 		grpc.WithPerRPCCredentials(&customCredential{}),

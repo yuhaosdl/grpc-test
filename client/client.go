@@ -29,7 +29,7 @@ func (c customCredential) RequireTransportSecurity() bool {
 }
 func main() {
 	// set up a span reporter
-	reporter := zipkinhttp.NewReporter("http://39.106.8.113:9411/api/v2/spans")
+	reporter := zipkinhttp.NewReporter("http://xxxxxxxxxxx:9411/api/v2/spans")
 	defer reporter.Close()
 
 	// create our local service endpoint
